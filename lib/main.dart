@@ -5,16 +5,22 @@ import 'package:provider/provider.dart';
 import 'package:money_plan/theme/theme_provider.dart';
 import 'package:money_plan/theme/theme_custom.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'package:intl/date_symbol_data_local.dart';
 
 import './pages/main/main_page.dart';
 import './pages/calendar/calendar_page.dart';
 import './pages/temp1/temp_page1.dart';
-import './pages/temp2/temp_page2.dart';
+import './pages/setting/setting_page.dart';
+
 import 'models/budget.dart';
 import 'models/consumption.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('ko');
 
   final prefs = await SharedPreferences.getInstance();
   ThemeMode themeMode = ThemeMode.system;
@@ -79,6 +85,11 @@ class _MyAppState extends State<MyApp> {
             themeMode: Provider.of<ThemeProvider>(context).themeMode,
             theme: ThemeCustom.lightTheme,
             darkTheme: ThemeCustom.darkTheme,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('ko', '')],
             debugShowCheckedModeBanner: false,
             home: const BottomNavigation()
           );
@@ -122,7 +133,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
       case 2:
         return const TempPage1();
       case 3:
-        return const TempPage2();
+        return const SettingPage();
       default:
         return const MainPage();
     }
