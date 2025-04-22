@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:money_plan/theme/theme_provider.dart';
 import 'package:money_plan/theme/theme_custom.dart';
@@ -8,6 +10,8 @@ import './pages/main/main_page.dart';
 import './pages/calendar/calendar_page.dart';
 import './pages/temp1/temp_page1.dart';
 import './pages/temp2/temp_page2.dart';
+import 'models/budget.dart';
+import 'models/consumption.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +29,16 @@ void main() async {
   } else if (savedThemeMode == "system") {
     themeMode = ThemeMode.system;
   }
+
+  await Hive.initFlutter();
+
+  // 어댑터 등록
+  Hive.registerAdapter(ConsumptionAdapter());
+  Hive.registerAdapter(BudgetAdapter());
+
+  // 박스 열기
+  await Hive.openBox<Consumption>('consumptions');
+  await Hive.openBox<Budget>('budgets');
 
   runApp(MyApp(themeMode: themeMode));
   //runApp(const MyApp());
@@ -49,26 +63,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // _checkOnboarding();
   }
 
-  // void _checkOnboarding() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   setState(() {
-  //     isOnboardingComplete = prefs.getBool('onboarding_complete') ?? false;
-  //   });
-  // }
 
   @override
   Widget build(BuildContext context) {
-    // if (isOnboardingComplete == null) {
-    //   return const MaterialApp(
-    //     home: Scaffold(
-    //       body: Center(child: CircularProgressIndicator()), // 초기화 중 로딩 인디케이터
-    //     ),
-    //   );
-    // }
-
     return MultiProvider(
         providers: [
           ChangeNotifierProvider(
@@ -142,9 +141,9 @@ const _bottomBarItems = [
     label: '캘린더',
   ),
   BottomNavigationBarItem(
-    icon: Icon(Icons.timer_outlined),
-    activeIcon: Icon(Icons.timer_rounded),
-    label: '타이머',
+    icon: Icon(Icons.pie_chart_outline),
+    activeIcon: Icon(Icons.pie_chart_rounded),
+    label: '예산',
   ),
   BottomNavigationBarItem(
     icon: Icon(Icons.settings_outlined),
