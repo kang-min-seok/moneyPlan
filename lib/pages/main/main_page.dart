@@ -2,11 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:money_plan/pages/main/top_tabs/main_budget_page.dart';
 
 // 컴포넌트
-import 'top_tabs/main_summary_page.dart';
 import 'top_tabs/main_day_page.dart';
-import 'top_tabs/main_week_page.dart';
 // 페이지
 import './transaction_add_page.dart';
 // 모델
@@ -23,10 +22,16 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage>
     with SingleTickerProviderStateMixin {
+
+
+  static BudgetPeriod? _cachedPeriod;
+  static BudgetItem?   _cachedItem;
+
   late TabController _tabController;
 
   BudgetPeriod? _currentPeriod;
   BudgetItem?   _currentItem;
+
 
   final _periodBox = Hive.box<BudgetPeriod>('budgetPeriods');
   final _catBox    = Hive.box<BudgetCategory>('categories');
@@ -36,40 +41,46 @@ class _MainPageState extends State<MainPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    final today = DateTime.now();
-    for (final p in _periodBox.values) {
-      if (!today.isBefore(p.startDate) && !today.isAfter(p.endDate)) {
-        _currentPeriod = p;
-        if (p.items.isNotEmpty) _currentItem = p.items.first;
-        break;
+    // 1) 캐시가 있으면 그대로 사용
+    _currentPeriod = _cachedPeriod;
+    _currentItem   = _cachedItem;
+
+    // 2) 앱 최초 진입일 때만 오늘 날짜로 탐색
+    if (_currentPeriod == null) {
+      final today = DateTime.now();
+      for (final p in _periodBox.values) {
+        if (p.contains(today)) {
+          _currentPeriod = p;
+          _currentItem   = p.items.isNotEmpty ? p.items.first : null;
+          break;
+        }
       }
+      // 3) 결과를 캐시
+      _cachedPeriod = _currentPeriod;
+      _cachedItem   = _currentItem;
     }
   }
 
   /// 예산 항목 선택 BottomSheet
   Future<void> _pickBudgetPeriod() async {
     if (_periodBox.isEmpty) return;
-
     final periods = _periodBox.values.toList()
-      ..sort((a, b) => b.startDate.compareTo(a.startDate));   // 최근이 위
+      ..sort((a, b) => b.startDate.compareTo(a.startDate));
 
     final chosen = await showModalBottomSheet<BudgetPeriod>(
       context: context,
       builder: (ctx) => ListView(
         children: periods.map((p) {
-          // 기간 텍스트
-          final range = '${DateFormat('yyyy.MM.dd').format(p.startDate)}'
+          final range =
+              '${DateFormat('yyyy.MM.dd').format(p.startDate)}'
               ' ~ ${DateFormat('yyyy.MM.dd').format(p.endDate)}';
-
-          // 기간 총 한도/사용액 요약
           int limit = 0, spent = 0;
           for (final it in p.items) {
             limit += it.limitAmount;
             spent += it.spentAmount;
           }
-
           return ListTile(
-            title   : Text(range),
+            title: Text(range),
             subtitle: Text(
               '한도 ${NumberFormat('#,##0', 'ko').format(limit)}원  '
                   '사용 ${NumberFormat('#,##0', 'ko').format(spent)}원',
@@ -84,6 +95,8 @@ class _MainPageState extends State<MainPage>
       setState(() {
         _currentPeriod = chosen;
         _currentItem   = chosen.items.isNotEmpty ? chosen.items.first : null;
+        _cachedPeriod  = _currentPeriod;   // ← 캐시 업데이트
+        _cachedItem    = _currentItem;
       });
     }
   }
@@ -91,7 +104,7 @@ class _MainPageState extends State<MainPage>
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final theme  = Theme.of(context).textTheme;
+    final themes  = Theme.of(context);
 
     final df = DateFormat('MM.dd');
     final headerText = (_currentPeriod != null)
@@ -101,19 +114,18 @@ class _MainPageState extends State<MainPage>
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: colors.background,
+        backgroundColor: colors.surface,
         elevation: 0,
-        titleSpacing: 26,
         title: InkWell(
           onTap: _pickBudgetPeriod,
           child: Row(
             children: [
               Text(
                 headerText,
-                style: theme.displayLarge
-                    ?.copyWith(color: colors.onBackground, fontSize: 20),
+                style: themes.textTheme.displayLarge
+                    ?.copyWith(color: colors.onSurface, fontSize: 20),
               ),
-              Icon(Icons.expand_more_rounded, color: colors.onBackground),
+              Icon(Icons.expand_more_rounded, color: colors.onSurface),
             ],
           ),
         ),
@@ -121,11 +133,11 @@ class _MainPageState extends State<MainPage>
           controller: _tabController,
           isScrollable: true,
           labelPadding: const EdgeInsets.only(right: 25),
-          dividerColor: colors.surface,
+          dividerColor: themes.dividerColor,
           indicatorColor: colors.primary,
           labelColor: colors.primary,
-          unselectedLabelColor: colors.onBackground.withOpacity(0.6),
-          labelStyle: theme.displayMedium
+          unselectedLabelColor: colors.onSurface.withOpacity(0.6),
+          labelStyle: themes.textTheme.displayMedium
               ?.copyWith(fontWeight: FontWeight.bold, fontSize: 18),
           tabs: const [
             Tab(text: '일일'),
@@ -137,7 +149,7 @@ class _MainPageState extends State<MainPage>
         controller: _tabController,
         children: [
           MainDayPage(period: _currentPeriod, key: ValueKey(_currentPeriod?.id)),
-          MainWeekPage(),
+          MainBudgetPage(period: _currentPeriod!),
         ],
       ),
       floatingActionButton: FloatingActionButton(

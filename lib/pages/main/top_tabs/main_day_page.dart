@@ -24,7 +24,7 @@ class MainDayPage extends StatelessWidget {
     final dateFmt = DateFormat('M월 d일 (E)', 'ko');
     final amtFmt  = NumberFormat('#,##0', 'ko');
     final theme   = Theme.of(context);
-    final colors = Theme.of(context).colorScheme;
+    final colors = Theme.of(context);
     return ValueListenableBuilder(
       valueListenable: txBox.listenable(),
       builder: (_, Box<Transaction> box, __) {
@@ -93,7 +93,7 @@ class MainDayPage extends StatelessWidget {
             ),
             Divider(
                 height: 1,
-                color: colors.surface,
+                color: colors.dividerColor,
             ),
 
             /*──── 일별 리스트 ────*/
@@ -133,7 +133,7 @@ class MainDayPage extends StatelessWidget {
                       ),
                       Divider(
                         height: 1,
-                        color: colors.surface,
+                        color: colors.dividerColor,
                       ),
 
                       /*── 거래 카드 ──*/
@@ -182,7 +182,7 @@ class MainDayPage extends StatelessWidget {
                       }),
                       Divider(
                         height: 1,
-                        color: colors.surface,
+                        color: colors.dividerColor,
                       ),
                     ],
                   );
