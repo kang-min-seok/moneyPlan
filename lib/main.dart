@@ -11,11 +11,13 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import './pages/main/main_page.dart';
 import './pages/calendar/calendar_page.dart';
-import './pages/temp1/temp_page1.dart';
 import './pages/setting/setting_page.dart';
+import './pages/budget/budget_page.dart';
 
-import 'models/budget.dart';
-import 'models/consumption.dart';
+import 'models/budget_period.dart';
+import 'models/budget_item.dart';
+import 'models/budget_category.dart';
+import 'models/transaction.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,12 +41,17 @@ void main() async {
   await Hive.initFlutter();
 
   // 어댑터 등록
-  Hive.registerAdapter(ConsumptionAdapter());
-  Hive.registerAdapter(BudgetAdapter());
+  Hive
+    ..registerAdapter(BudgetPeriodAdapter())   // typeId: 0
+    ..registerAdapter(BudgetItemAdapter())     // typeId: 1
+    ..registerAdapter(BudgetCategoryAdapter()) // typeId: 2
+    ..registerAdapter(TransactionAdapter());   // typeId: 3
 
   // 박스 열기
-  await Hive.openBox<Consumption>('consumptions');
-  await Hive.openBox<Budget>('budgets');
+  await Hive.openBox<BudgetCategory>('categories');
+  await Hive.openBox<BudgetItem>('budgetItems');
+  await Hive.openBox<BudgetPeriod>('budgetPeriods');
+  await Hive.openBox<Transaction>('transactions');
 
   runApp(MyApp(themeMode: themeMode));
   //runApp(const MyApp());
@@ -129,9 +136,9 @@ class _BottomNavigationState extends State<BottomNavigation> {
       case 0:
         return const MainPage();
       case 1:
-        return const CalendarPage();
+        return const BudgetPage();
       case 2:
-        return const TempPage1();
+        return const CalendarPage();
       case 3:
         return const SettingPage();
       default:
@@ -147,14 +154,14 @@ const _bottomBarItems = [
     label: '홈',
   ),
   BottomNavigationBarItem(
-    icon: Icon(Icons.calendar_month_outlined),
-    activeIcon: Icon(Icons.calendar_month_rounded),
-    label: '캘린더',
-  ),
-  BottomNavigationBarItem(
     icon: Icon(Icons.pie_chart_outline),
     activeIcon: Icon(Icons.pie_chart_rounded),
     label: '예산',
+  ),
+  BottomNavigationBarItem(
+    icon: Icon(Icons.calendar_month_outlined),
+    activeIcon: Icon(Icons.calendar_month_rounded),
+    label: '캘린더',
   ),
   BottomNavigationBarItem(
     icon: Icon(Icons.settings_outlined),

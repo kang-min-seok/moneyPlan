@@ -1,13 +1,18 @@
 // lib/pages/main/main_page.dart
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 
 // 컴포넌트
-import 'component/main_summary.dart';
-import 'component/main_day.dart';
-import 'component/main_week.dart';
-import 'component/bottom_sheet_date.dart';
+import 'top_tabs/main_summary_page.dart';
+import 'top_tabs/main_day_page.dart';
+import 'top_tabs/main_week_page.dart';
 // 페이지
-import './add_consumption_page.dart';
+import './transaction_add_page.dart';
+// 모델
+import '../../models/budget_period.dart';
+import '../../models/budget_item.dart';
+import '../../models/budget_category.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -16,48 +21,71 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin {
+class _MainPageState extends State<MainPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  DateTime? _startDate;
-  DateTime? _endDate;
+  BudgetPeriod? _currentPeriod;
+  BudgetItem?   _currentItem;
+
+  final _periodBox = Hive.box<BudgetPeriod>('budgetPeriods');
+  final _catBox    = Hive.box<BudgetCategory>('categories');
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
 
-    // 기본: 이번 달 1일 ~ 말일
-    final now = DateTime.now();
-    _startDate = DateTime(now.year, now.month, 1);
-    _endDate   = DateTime(now.year, now.month + 1, 0);
-  }
-
-  Future<void> _showModalBottomSheet(BuildContext context, String filter) async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (_) => const BottomSheetDate(),
-    );
-    if (result != null) {
-      _applyFilters(result);
+    final today = DateTime.now();
+    for (final p in _periodBox.values) {
+      if (!today.isBefore(p.startDate) && !today.isAfter(p.endDate)) {
+        _currentPeriod = p;
+        if (p.items.isNotEmpty) _currentItem = p.items.first;
+        break;
+      }
     }
   }
 
-  void _applyFilters(Map<String, dynamic> filterResult) {
-    setState(() {
-      // startDate/endDate만 덮어쓰기
-      if (filterResult.containsKey('startDate')) {
-        _startDate = filterResult['startDate'] as DateTime?;
-      }
-      if (filterResult.containsKey('endDate')) {
-        _endDate = filterResult['endDate'] as DateTime?;
-      }
-      // 나머지 필터는 무시
-    });
+  /// 예산 항목 선택 BottomSheet
+  Future<void> _pickBudgetPeriod() async {
+    if (_periodBox.isEmpty) return;
+
+    final periods = _periodBox.values.toList()
+      ..sort((a, b) => b.startDate.compareTo(a.startDate));   // 최근이 위
+
+    final chosen = await showModalBottomSheet<BudgetPeriod>(
+      context: context,
+      builder: (ctx) => ListView(
+        children: periods.map((p) {
+          // 기간 텍스트
+          final range = '${DateFormat('yyyy.MM.dd').format(p.startDate)}'
+              ' ~ ${DateFormat('yyyy.MM.dd').format(p.endDate)}';
+
+          // 기간 총 한도/사용액 요약
+          int limit = 0, spent = 0;
+          for (final it in p.items) {
+            limit += it.limitAmount;
+            spent += it.spentAmount;
+          }
+
+          return ListTile(
+            title   : Text(range),
+            subtitle: Text(
+              '한도 ${NumberFormat('#,##0', 'ko').format(limit)}원  '
+                  '사용 ${NumberFormat('#,##0', 'ko').format(spent)}원',
+            ),
+            onTap: () => Navigator.pop(ctx, p),
+          );
+        }).toList(),
+      ),
+    );
+
+    if (chosen != null) {
+      setState(() {
+        _currentPeriod = chosen;
+        _currentItem   = chosen.items.isNotEmpty ? chosen.items.first : null;
+      });
+    }
   }
 
   @override
@@ -65,10 +93,11 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     final colors = Theme.of(context).colorScheme;
     final theme  = Theme.of(context).textTheme;
 
-    // 상단 타이틀: "4월" 같은 월 표시. 범위가 설정돼 있으면 "MM.dd–MM.dd" 로도 만들 수 있어요.
-    final titleText = _startDate != null
-        ? '${_startDate!.month}월'
-        : '날짜 설정';
+    final df = DateFormat('MM.dd');
+    final headerText = (_currentPeriod != null)
+        ? '${df.format(_currentPeriod!.startDate)}'
+        ' ~ ${df.format(_currentPeriod!.endDate)}'
+        : '예산 선택';
 
     return Scaffold(
       appBar: AppBar(
@@ -76,69 +105,47 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
         elevation: 0,
         titleSpacing: 26,
         title: InkWell(
-          onTap: () => _showModalBottomSheet(context, '날짜'),
+          onTap: _pickBudgetPeriod,
           child: Row(
             children: [
               Text(
-                titleText,
+                headerText,
                 style: theme.displayLarge
-                    ?.copyWith(color: colors.onBackground, fontSize: 25),
+                    ?.copyWith(color: colors.onBackground, fontSize: 20),
               ),
               Icon(Icons.expand_more_rounded, color: colors.onBackground),
             ],
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.filter_list, color: colors.onBackground),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.search, color: colors.onBackground),
-          ),
-        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelPadding: EdgeInsets.only(right: 25),
+          labelPadding: const EdgeInsets.only(right: 25),
           dividerColor: colors.surface,
           indicatorColor: colors.primary,
           labelColor: colors.primary,
           unselectedLabelColor: colors.onBackground.withOpacity(0.6),
           labelStyle: theme.displayMedium
-              ?.copyWith(fontWeight: FontWeight.bold, fontSize: 20),
+              ?.copyWith(fontWeight: FontWeight.bold, fontSize: 18),
           tabs: const [
-            Tab(text: '요약'),
             Tab(text: '일일'),
-            Tab(text: '주간'),
+            Tab(text: '예산'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          Container(
-            color: colors.background,
-            child: const MainSummary(),
-          ),
-          Container(
-            color: colors.background,
-            child: MainDay(
-              range: DateTimeRange(start: _startDate!, end: _endDate!),
-            ),
-          ),
-          Container(
-            color: colors.background,
-            child: const MainWeek(),
-          ),
+          MainDayPage(period: _currentPeriod, key: ValueKey(_currentPeriod?.id)),
+          MainWeekPage(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: colors.primary,
         child: const Icon(Icons.add),
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AddConsumptionPage()),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TransactionAddPage()),
         ),
       ),
     );

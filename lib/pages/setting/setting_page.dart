@@ -10,13 +10,11 @@ class SettingPage extends StatefulWidget {
 }
 
 class _SettingPageState extends State<SettingPage> {
-  static bool _isNotification = true;
   static String themeText = "기기 테마";
 
   @override
   void initState() {
     getThemeText();
-    getIsNotification();
     super.initState();
   }
 
@@ -43,25 +41,7 @@ class _SettingPageState extends State<SettingPage> {
     }
   }
 
-  void getIsNotification() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool? savedIsNotification = prefs.getBool('isNotification');
 
-    if(savedIsNotification != null && savedIsNotification){
-      setState(() {
-        _isNotification = true;
-      });
-    } else if(savedIsNotification != null && !savedIsNotification){
-      setState(() {
-        _isNotification = false;
-      });
-    } else {
-      prefs.setBool('isNotification', true);
-      setState(() {
-        _isNotification = true;
-      });
-    }
-  }
 
   void changeIsNotification(bool value) async {
     final prefs = await SharedPreferences.getInstance();
