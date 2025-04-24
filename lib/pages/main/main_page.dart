@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:money_plan/pages/main/top_tabs/main_budget_page.dart';
 
 // 컴포넌트
+import '../../componenets/bottom_sheet/bottom_sheet_pick_budget_period.dart';
 import 'top_tabs/main_day_page.dart';
 // 페이지
 import './transaction_add_page.dart';
@@ -34,7 +35,6 @@ class _MainPageState extends State<MainPage>
 
 
   final _periodBox = Hive.box<BudgetPeriod>('budgetPeriods');
-  final _catBox    = Hive.box<BudgetCategory>('categories');
 
   @override
   void initState() {
@@ -63,40 +63,13 @@ class _MainPageState extends State<MainPage>
 
   /// 예산 항목 선택 BottomSheet
   Future<void> _pickBudgetPeriod() async {
-    if (_periodBox.isEmpty) return;
-    final periods = _periodBox.values.toList()
-      ..sort((a, b) => b.startDate.compareTo(a.startDate));
-
-    final chosen = await showModalBottomSheet<BudgetPeriod>(
-      context: context,
-      builder: (ctx) => ListView(
-        children: periods.map((p) {
-          final range =
-              '${DateFormat('yyyy.MM.dd').format(p.startDate)}'
-              ' ~ ${DateFormat('yyyy.MM.dd').format(p.endDate)}';
-          int limit = 0, spent = 0;
-          for (final it in p.items) {
-            limit += it.limitAmount;
-            spent += it.spentAmount;
-          }
-          return ListTile(
-            title: Text(range),
-            subtitle: Text(
-              '한도 ${NumberFormat('#,##0', 'ko').format(limit)}원  '
-                  '사용 ${NumberFormat('#,##0', 'ko').format(spent)}원',
-            ),
-            onTap: () => Navigator.pop(ctx, p),
-          );
-        }).toList(),
-      ),
-    );
-
+    final chosen = await showBudgetPeriodPicker(context); // ← 한 줄 호출
     if (chosen != null) {
       setState(() {
         _currentPeriod = chosen;
-        _currentItem   = chosen.items.isNotEmpty ? chosen.items.first : null;
-        _cachedPeriod  = _currentPeriod;   // ← 캐시 업데이트
-        _cachedItem    = _currentItem;
+        _currentItem = chosen.items.isNotEmpty ? chosen.items.first : null;
+        _cachedPeriod = _currentPeriod;
+        _cachedItem = _currentItem;
       });
     }
   }
@@ -129,6 +102,26 @@ class _MainPageState extends State<MainPage>
             ],
           ),
         ),
+        actions: [
+          IconButton(                          // ←  글 작성 아이콘
+            icon: const Icon(Icons.create_rounded),
+            color: colors.onSurface,
+            tooltip: '예산 편집',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TransactionAddPage()),
+            ),
+          ),
+          IconButton(                          // ←  글 작성 아이콘
+            icon: const Icon(Icons.add_rounded),
+            color: colors.onSurface,
+            tooltip: '새 지출/수입 추가',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TransactionAddPage()),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -151,14 +144,6 @@ class _MainPageState extends State<MainPage>
           MainDayPage(period: _currentPeriod, key: ValueKey(_currentPeriod?.id)),
           MainBudgetPage(period: _currentPeriod!),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: colors.primary,
-        child: const Icon(Icons.add),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const TransactionAddPage()),
-        ),
       ),
     );
   }

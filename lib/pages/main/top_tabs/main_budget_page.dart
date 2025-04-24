@@ -7,9 +7,11 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../models/budget_period.dart';
 import '../../../models/budget_item.dart';
 import '../../../models/budget_category.dart';
+import '../budget_item_list_page.dart';
 
 class MainBudgetPage extends StatelessWidget {
   final BudgetPeriod period;
+
   const MainBudgetPage({super.key, required this.period});
 
   @override
@@ -17,16 +19,18 @@ class MainBudgetPage extends StatelessWidget {
     final catBox = Hive.box<BudgetCategory>('categories');
     final amtFmt = NumberFormat('#,##0', 'ko');
 
+    final List<BudgetItem> sortedItems = [...period.items]
+       ..sort((a, b) => b.spentAmount.compareTo(a.spentAmount));
     /*──── 데이터 준비 ────*/
-    final totalSpent = period.items.fold<int>(0, (s, i) => s + i.spentAmount);
-    final sections = <PieChartSectionData>[];
+    final totalSpent = sortedItems.fold<int>(0, (s, i) => s + i.spentAmount);
+    final sections   = <PieChartSectionData>[];
 
-    for (final item in period.items) {
+    for (final item in sortedItems) {
       final spent = item.spentAmount;
-      if (spent == 0) continue;                 // 0원은 차트에서 제외
-      final cat   = catBox.get(item.categoryId);
+      if (spent == 0) continue; // 0원은 차트에서 제외
+      final cat = catBox.get(item.categoryId);
       final color = Color(cat?.colorValue ?? 0xFFCCCCCC);
-      final pct   = totalSpent == 0 ? 0.0 : spent / totalSpent * 100;
+      final pct = totalSpent == 0 ? 0.0 : spent / totalSpent * 100;
       sections.add(PieChartSectionData(
         value: spent.toDouble(),
         color: color,
@@ -39,7 +43,7 @@ class MainBudgetPage extends StatelessWidget {
     return Scaffold(
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        itemCount: period.items.length + 2,          // 도넛 + SizedBox + 항목들
+        itemCount: sortedItems.length + 2,  // 도넛 + SizedBox + 항목들
         separatorBuilder: (_, __) => const SizedBox(height: 10), // ← 간격 조절
         itemBuilder: (ctx, index) {
           // 0 : 도넛 차트, 1 : SizedBox, 2~ : BudgetItem
@@ -47,24 +51,24 @@ class MainBudgetPage extends StatelessWidget {
             return sections.isEmpty
                 ? const SizedBox.shrink()
                 : SizedBox(
-              height: 240,
-              child: PieChart(
-                PieChartData(
-                  sections: sections,
-                  centerSpaceRadius: 50,
-                  sectionsSpace: 3,
-                ),
-              ),
-            );
+                    height: 240,
+                    child: PieChart(
+                      PieChartData(
+                        sections: sections,
+                        centerSpaceRadius: 50,
+                        sectionsSpace: 3,
+                      ),
+                    ),
+                  );
           }
           if (index == 1) return const SizedBox.shrink();
 
-          final item   = period.items[index - 2];
-          final cat    = catBox.get(item.categoryId);
-          final spent  = item.spentAmount;
-          final limit  = item.limitAmount;
+          final item = sortedItems[index - 2];
+          final cat = catBox.get(item.categoryId);
+          final spent = item.spentAmount;
+          final limit = item.limitAmount;
           final remain = limit - spent;
-          final pct    = totalSpent == 0
+          final pct = totalSpent == 0
               ? '0'
               : (spent / totalSpent * 100).toStringAsFixed(1);
 
@@ -82,7 +86,7 @@ class MainBudgetPage extends StatelessWidget {
                 const SizedBox(width: 8),
                 Container(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.grey.withOpacity(.15),
                     borderRadius: BorderRadius.circular(10),
@@ -116,14 +120,18 @@ class MainBudgetPage extends StatelessWidget {
                 const Icon(Icons.chevron_right_rounded, color: Colors.grey),
               ],
             ),
-            onTap: () => {
-              print("ㅎㅇ")
-            },
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BudgetItemDetailPage(
+                  period: period,
+                  item: item,
+                ),
+              ),
+            ),
           );
         },
       ),
     );
-
   }
 }
-
