@@ -55,10 +55,19 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
                 const SizedBox(height: 20),
                 const Text('기간 선택',
                     style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold)),
-                const SizedBox(height: 15),
                 Expanded(
                   child: SfDateRangePicker(
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     selectionMode: DateRangePickerSelectionMode.range,
+                    headerStyle: DateRangePickerHeaderStyle(
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      textStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      )
+                    ),
+                    headerHeight: 80,
                     showActionButtons: false,
                     initialSelectedRange:
                     (s != null && e != null) ? PickerDateRange(s, e) : null,
