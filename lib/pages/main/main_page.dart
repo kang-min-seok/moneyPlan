@@ -63,7 +63,7 @@ class _MainPageState extends State<MainPage>
 
   /// 예산 항목 선택 BottomSheet
   Future<void> _pickBudgetPeriod() async {
-    final chosen = await showBudgetPeriodPicker(context); // ← 한 줄 호출
+    final chosen = await showBudgetPeriodPicker(context);
     if (chosen != null) {
       setState(() {
         _currentPeriod = chosen;
@@ -138,7 +138,9 @@ class _MainPageState extends State<MainPage>
           ],
         ),
       ),
-      body: TabBarView(
+      body: (_currentPeriod == null)
+          ? const Center(child: Text('예산을 먼저 선택하세요'))
+          : TabBarView(
         controller: _tabController,
         children: [
           MainDayPage(period: _currentPeriod, key: ValueKey(_currentPeriod?.id)),

@@ -13,7 +13,12 @@ Future<BudgetPeriod?> showBudgetPeriodPicker(BuildContext context) {
       final box = Hive.box<BudgetPeriod>('budgetPeriods');
       final periods = box.values.toList()
         ..sort((a, b) => b.startDate.compareTo(a.startDate));
-
+      if (periods.isEmpty) {
+        return const SizedBox(
+          height: 180,                       // 시트 높이 조금만 확보
+          child: Center(child: Text('예산 목록이 없습니다')),
+        );
+      }
       return ListView(
         children: periods.map((p) {
           final range =

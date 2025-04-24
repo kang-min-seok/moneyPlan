@@ -1,6 +1,6 @@
 # money_plan
 
-household toyproject
+toy project
 
 ## Getting Started
 
