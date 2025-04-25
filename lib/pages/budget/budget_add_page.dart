@@ -11,6 +11,7 @@ import '../../models/transaction.dart';
 
 import 'categort_edit_page.dart';            // 카테고리 편집 페이지
 import 'package:money_plan/componenets/bottom_sheet/bottom_sheet_category_add.dart';
+import '../../componenets/icon_map.dart';
 
 class BudgeAddPage extends StatefulWidget {
   const BudgeAddPage({super.key});
@@ -121,6 +122,35 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
     return !_dateMissing && !_rangeOverlap;
   }
 
+
+  Future<void> debugPrintBudgetHive() async {
+    final catBox   = Hive.box<BudgetCategory>('categories');
+    final itemBox  = Hive.box<BudgetItem>('budgetItems');
+    final periodBox= Hive.box<BudgetPeriod>('budgetPeriods');
+    final txBox    = Hive.box<Transaction>('transactions');
+
+    debugPrint('─── BudgetCategory (${catBox.length}) ───');
+    for (var c in catBox.values) {
+      debugPrint('[${c.id}]  ${c.name}  icon:${c.iconKey}  color:${c.colorValue.toRadixString(16)}');
+    }
+
+    debugPrint('─── BudgetItem (${itemBox.length}) ───');
+    for (var i in itemBox.values) {
+      debugPrint('[${i.id}]  cat:${i.categoryId}  limit:${i.limitAmount}  spent:${i.spentAmount}');
+    }
+
+    debugPrint('─── BudgetPeriod (${periodBox.length}) ───');
+    for (var p in periodBox.values) {
+      debugPrint('[${p.id}]  ${p.startDate} ~ ${p.endDate}  items:${p.items.map((e) => e.id).join(",")}');
+    }
+
+    debugPrint('─── Transaction (${txBox.length}) ───');
+    for (var t in txBox.values) {
+      debugPrint('[${t.id}]  ${t.date}  type:${t.type}  amt:${t.amount}  cat:${t.categoryId}  item:${t.budgetItemId}');
+    }
+    debugPrint('──────────────────────────────────────');
+  }
+
   bool _periodClashes(DateTime s, DateTime e) {
     for (final p in _periodBox.values) {
       if (!e.isBefore(p.startDate) && !s.isAfter(p.endDate)) return true;
@@ -139,6 +169,9 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
   }
 
   Future<void> _save() async {
+
+    debugPrintBudgetHive();
+
     if (!_validateAll()) return;
 
     /* ─ 완료된 항목만 선별 ─ */
@@ -178,115 +211,113 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
   /*───────────────────────────────────────────────────────────*/
   @override
   Widget build(BuildContext context) {
-    final amtFmt = NumberFormat('#,##0', 'ko');
 
     return Scaffold(
       appBar: AppBar(title: const Text('예산 편성')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            /* ─ 날짜 버튼 ─ */
-            _rangeButton(),
-            if (_rangeOverlap)
-              const Padding(
-                padding: EdgeInsets.only(top:4),
-                child: Text('다른 예산 기간과 겹칩니다',
-                    style: TextStyle(color: Colors.red)),
-              ),
-            const SizedBox(height: 24),
+      body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                /* ─ 날짜 버튼 ─ */
+                _rangeButton(),
+                if (_rangeOverlap)
+                  const Padding(
+                    padding: EdgeInsets.only(top:4),
+                    child: Text('다른 예산 기간과 겹칩니다',
+                        style: TextStyle(color: Colors.red)),
+                  ),
+                const SizedBox(height: 24),
 
-            /* ─ 입력 리스트 + 추가 버튼 ─ */
-            Expanded(
-              child: ListView.separated(
-                itemCount: _draft.length + 1,
-                separatorBuilder: (_, __) => const Divider(),
-                itemBuilder: (ctx, i) {
-                  /*➊ 추가 버튼 줄 ----------------------------------------*/
-                  if (i == _draft.length) {
-                    return Center(
-                      child: GestureDetector(
-                        onTap: () =>
-                            setState(() => _draft.add(_TempItem())),
-                        child: const Row(
-                          children: [
-                            Expanded(child: SizedBox()),
-                            Text(
-                                "예산 추가",
-                              style: TextStyle(
-                                fontSize: 17
-                              ),
+                /* ─ 입력 리스트 + 추가 버튼 ─ */
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: _draft.length + 1,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10,),
+                    itemBuilder: (ctx, i) {
+                      /*➊ 추가 버튼 줄 ----------------------------------------*/
+                      if (i == _draft.length) {
+                        return Center(
+                            child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _draft.add(_TempItem())),
+                                child: const Row(
+                                  children: [
+                                    Expanded(child: SizedBox()),
+                                    Text(
+                                      "예산 추가",
+                                      style: TextStyle(
+                                          fontSize: 17
+                                      ),
+                                    ),
+                                    SizedBox(width: 5,),
+                                    Icon(Icons.add_rounded),
+                                    Expanded(child: SizedBox()),
+                                  ],
+                                )
+                            )
+                        );
+                      }
+
+                      /*➋ 입력 Row ---------------------------------------------*/
+                      final d   = _draft[i];
+                      final err = _showItemErrors && !d.isComplete;
+
+                      return Row(
+                        children: [
+                          /* 카테고리 */
+                          Expanded(
+                            flex: 1,
+                            child: _categoryField(
+                              selectedId: d.categoryId,
+                              hasErr   : err && d.categoryId == null,
+                              onPicked : (id) => setState(() => d.categoryId = id),
                             ),
-                            SizedBox(width: 5,),
-                            Icon(Icons.add_rounded),
-                            Expanded(child: SizedBox()),
-                          ],
-                        )
-                      )
-                    );
-                  }
-
-                  /*➋ 입력 Row ---------------------------------------------*/
-                  final d   = _draft[i];
-                  final err = _showItemErrors && !d.isComplete;
-
-                  return Row(
-                    // crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      /* 카테고리 */
-                      Expanded(
-                        flex: 1,
-                        child: _categoryField(
-                          selectedId: d.categoryId,
-                          hasErr   : err && d.categoryId == null,
-                          onPicked : (id) => setState(() => d.categoryId = id),
-                        ),
-                      ),
-                      const SizedBox(width:8),
-                      /* 금액 */
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          controller : d.amtCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration : InputDecoration(
-                            hintText: '금액',
-                            isDense : true,
-                            errorText: (err &&
-                                (int.tryParse(d.amtCtrl.text) ?? 0) == 0)
-                                ? ''
-                                : null,
                           ),
-                          onChanged: (_) => setState((){}),
-                        ),
-                      ),
-                      /* 삭제 (길게) */
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () =>
-                            setState(() => _draft.removeAt(i)),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            if (_emptyItems)
-              const Text('예산 항목을 하나 이상 추가하세요',
-                  style: TextStyle(color: Colors.red)),
+                          const SizedBox(width:8),
+                          /* 금액 */
+                          Expanded(
+                            flex: 2,
+                            child: _amountField(
+                              controller: d.amtCtrl,
+                              hasErr: err && (int.tryParse(d.amtCtrl.text) ?? 0) == 0,
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          /* 삭제 (길게) */
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ), // 최소 크기 제한
+                            visualDensity: VisualDensity.compact, // 조금 더 촘촘하게
+                            onPressed: () =>
+                                setState(() => _draft.removeAt(i)),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                if (_emptyItems)
+                  const Text('예산 항목을 하나 이상 추가하세요',
+                      style: TextStyle(color: Colors.red)),
 
-            const SizedBox(height: 8),
-            /* ─ 저장 버튼 ─ */
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _save,
-                icon : const Icon(Icons.save),
-                label: const Text('저장'),
-              ),
+                const SizedBox(height: 8),
+                /* ─ 저장 버튼 ─ */
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _save,
+                    icon : const Icon(Icons.save),
+                    label: const Text('저장'),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
       ),
     );
   }
@@ -333,22 +364,70 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
         if (id != null) onPicked(id);
       },
       child: InputDecorator(
+        isEmpty: (sel?.name ?? '').isEmpty, // TextField처럼 처리
         decoration: InputDecoration(
-          hintText: '카테고리',
+          hintText: '예산',
           isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12), // height 조절
           enabledBorder: UnderlineInputBorder(
             borderSide: BorderSide(
-                color: hasErr
-                    ? Colors.red
-                    : Theme.of(context).colorScheme.outline),
+              color: hasErr
+                  ? Colors.red
+                  : Theme.of(context).colorScheme.outline,
+            ),
           ),
           suffixIcon: const Icon(Icons.expand_more_rounded),
         ),
-        child: Text(sel?.name ?? '',
-            style: const TextStyle(fontWeight: FontWeight.w600)),
+        child: Text(
+          sel?.name ?? '',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
+
+  Widget _amountField({
+    required TextEditingController controller,
+    required bool hasErr,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Stack(
+      alignment: Alignment.centerLeft,
+      children: [
+        InputDecorator(
+          isEmpty: controller.text.isEmpty,
+          decoration: InputDecoration(
+            hintText: '금액',
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(
+                color: hasErr
+                    ? Colors.red
+                    : Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            // errorText는 InputDecorator에는 표시 안되므로 따로 처리 필요
+          ),
+          child: const SizedBox.shrink(), // child는 텍스트를 안 넣음
+        ),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            border: InputBorder.none, // underline은 InputDecorator에 위임
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(vertical: 12),
+          ),
+          onChanged: onChanged,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+
+
 
   /*──────────────────────── 카테고리 Picker ─────────────────────*/
   Future<int?> _showCategoryPicker() async {
@@ -383,20 +462,20 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
                 ],
               ),
             ),
-            const Divider(height:1),
             /* 목록 */
             SizedBox(
               height: 350,
               child: ListView.separated(
                 itemCount: _catBox.length,
                 separatorBuilder: (_, __) =>
-                const Divider(height:1,thickness:.3),
+                const SizedBox(),
                 itemBuilder: (_, i) {
                   final c = _catBox.getAt(i)!;
+                  final iconData = iconMap[c.iconKey] ?? Icons.help_outline;
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Color(c.colorValue),
-                      child: const Icon(Icons.category,color:Colors.white),
+                      child: Icon(iconData, color: Colors.white),
                     ),
                     title: Text(c.name),
                     onTap: () => Navigator.pop(ctx, c.id),

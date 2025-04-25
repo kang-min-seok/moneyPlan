@@ -24,11 +24,14 @@ class Transaction extends HiveObject {
   @HiveField(5)
   String memo;
 
-  /// 어느 BudgetPeriod 에 속하는지 (수익이면 null 가능)
   @HiveField(6)
+  String path;
+
+  /// 어느 BudgetPeriod 에 속하는지 (수익이면 null 가능)
+  @HiveField(7)
   int? periodId;
 
-  @HiveField(7)
+  @HiveField(8)
   int budgetItemId;
 
   Transaction({
@@ -38,6 +41,7 @@ class Transaction extends HiveObject {
     required this.amount,
     required this.categoryId,
     required this.memo,
+    required this.path,
     this.periodId,
     required this.budgetItemId,
   });

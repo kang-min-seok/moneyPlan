@@ -123,7 +123,7 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
                     '${df.format(widget.period.startDate)} ~ '
                         '${df.format(widget.period.endDate)}',
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                        fontWeight: FontWeight.bold, fontSize: 22),
                   ),
                 ),
 
@@ -176,14 +176,16 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
         final remainI = it.limitAmount - spentI;
         return ListTile(
           dense: true,
+          visualDensity: VisualDensity(horizontal: -4),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15),
           leading: CircleAvatar(
-            radius: 12,
+            radius: 10,
             backgroundColor: Color(cat?.colorValue ?? 0xFFCCCCCC),
           ),
           title: Text(cat?.name ?? '—',
               style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 15
+                  fontSize: 17
 
               )
           ),
@@ -191,12 +193,13 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
             '${amtFmt.format(spentI)} / ${amtFmt.format(it.limitAmount)}',
             style: const TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 13,
+                fontSize: 15,
             ),
           ),
           subtitle: Text(
             '잔액 ${amtFmt.format(remainI)}원',
             style: TextStyle(
+              fontSize: 14,
                 color: remainI < 0
                     ? Colors.redAccent
                     : Theme
@@ -287,12 +290,15 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            SizedBox(width: 38, child: Text(k)),
+            Text(k, style: TextStyle(fontSize: 17)),
+            SizedBox(width: 15,),
             Text(
               v,
               style: TextStyle(
-                  fontWeight: FontWeight.w600, color: valueColor),
+                fontSize: 17,
+                color: valueColor),
             ),
           ],
         ),

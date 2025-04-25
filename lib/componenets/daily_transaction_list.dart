@@ -6,6 +6,7 @@ import 'package:collection/collection.dart';
 import '../models/transaction.dart';
 import '../models/budget_category.dart';
 import '../models/budget_item.dart';
+import './icon_map.dart';
 
 /// ──────────────────────────────────────────────────────────────
 /// • [transactions] : **기간·카테고리 등 이미 필터링된** 전체 거래 리스트
@@ -118,7 +119,7 @@ class DailyTransactionList extends StatelessWidget {
               final iconColor = isIncome
                   ? theme.colorScheme.primary
                   : Color(cat?.colorValue ?? 0xFFCCCCCC);
-              final iconData  = isIncome ? Icons.add : Icons.receipt_long;
+              final iconData = iconMap[cat?.iconKey] ?? Icons.help_outline;
 
               return ListTile(
                 leading: CircleAvatar(
