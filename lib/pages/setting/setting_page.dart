@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'design_setting_page.dart';
+import './qr_export_page.dart';
+import './qr_import_page.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({Key? key}) : super(key: key);
@@ -79,6 +81,35 @@ class _SettingPageState extends State<SettingPage> {
                       themeText,
                       style: const TextStyle(fontSize: 13, color: Colors.grey),
                     ),
+                  ),
+                ],
+              ),
+
+              _SingleSection(
+                title: "데이터",
+                children: [
+                  _CustomListTile(
+                    title: "qr생성하기",
+                    icon: Icons.qr_code_2_outlined,
+                    onTap: (){
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const QrExportPage()),
+                      );
+                    },
+                  ),
+
+                  _CustomListTile(
+                    title: "qr촬영하기",
+                    icon: Icons.qr_code_scanner_rounded,
+                    onTap: (){
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const QrImportPage()),
+                      ).then((_) {
+                        getThemeText();
+                      });
+                    },
                   ),
                 ],
               ),

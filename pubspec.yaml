@@ -22,6 +22,8 @@ dependencies:
   collection: ^1.18.0
   fl_chart: ^0.71.0
   syncfusion_flutter_datepicker: ^29.1.39
+  qr_flutter: ^4.1.0
+  qr_code_scanner: ^1.0.1
 
 dev_dependencies:
   flutter_test:
