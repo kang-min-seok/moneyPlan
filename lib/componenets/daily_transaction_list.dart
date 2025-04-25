@@ -6,6 +6,7 @@ import 'package:collection/collection.dart';
 import '../models/transaction.dart';
 import '../models/budget_category.dart';
 import '../models/budget_item.dart';
+import '../pages/main/transaction_edit_page.dart';
 import './icon_map.dart';
 
 /// ──────────────────────────────────────────────────────────────
@@ -22,7 +23,7 @@ class DailyTransactionList extends StatelessWidget {
   });
 
   final List<Transaction> transactions;
-  final Map<int, int>     remainByTxId;
+  final Map<int, int> remainByTxId;
 
   /*──────────────── BottomSheet ────────────────*/
   void _showTxOptions(BuildContext context, Transaction tx) {
@@ -34,21 +35,38 @@ class DailyTransactionList extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title  : const Text('수정하기'),
-              onTap  : () { Navigator.pop(context); /* TODO: 편집 화면 */ },
+              title: const Text('수정하기'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TransactionEditPage(tx: tx),
+                  ),
+                );
+              },
             ),
             ListTile(
-              leading: const Icon(Icons.delete),
-              title  : const Text('삭제하기'),
-              onTap  : () async {
-                final txBox   = Hive.box<Transaction>('transactions');
+              leading: Icon(
+                Icons.delete,
+                color: Colors.redAccent,
+              ),
+              title: Text(
+                '삭제하기',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                ),
+              ),
+              onTap: () async {
+                final txBox = Hive.box<Transaction>('transactions');
                 final itemBox = Hive.box<BudgetItem>('budgetItems');
 
                 // 1) 연결된 예산 spentAmount 복원
                 if (tx.type == 'expense') {
                   final item = itemBox.get(tx.budgetItemId);
                   if (item != null) {
-                    item.spentAmount = (item.spentAmount - tx.amount).clamp(0, 1<<31);
+                    item.spentAmount =
+                        (item.spentAmount - tx.amount).clamp(0, 1 << 31);
                     await item.save();
                   }
                 }
@@ -66,14 +84,15 @@ class DailyTransactionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catBox  = Hive.box<BudgetCategory>('categories');
+    final catBox = Hive.box<BudgetCategory>('categories');
     final dateFmt = DateFormat('M월 d일 (E)', 'ko');
-    final amtFmt  = NumberFormat('#,##0', 'ko');
-    final theme   = Theme.of(context);
+    final amtFmt = NumberFormat('#,##0', 'ko');
+    final theme = Theme.of(context);
 
     /*── 날짜별 그룹핑 (최근 → 오래된 순서) ─*/
     final groups = <DateTime, List<Transaction>>{};
-    for (final t in transactions.reversed) {          // 가장 최신이 위
+    for (final t in transactions.reversed) {
+      // 가장 최신이 위
       final day = DateTime(t.date.year, t.date.month, t.date.day);
       groups.putIfAbsent(day, () => []).add(t);
     }
@@ -82,7 +101,7 @@ class DailyTransactionList extends StatelessWidget {
     return ListView.builder(
       itemCount: days.length,
       itemBuilder: (_, idx) {
-        final day  = days[idx];
+        final day = days[idx];
         final list = groups[day]!;
 
         final dayInc = list
@@ -103,7 +122,8 @@ class DailyTransactionList extends StatelessWidget {
                   Text(dateFmt.format(day),
                       style: theme.textTheme.bodyMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
-                  Text('+${amtFmt.format(dayInc)}  |  -${amtFmt.format(dayExp)}',
+                  Text(
+                      '+${amtFmt.format(dayInc)}  |  -${amtFmt.format(dayExp)}',
                       style: theme.textTheme.bodyMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
                 ],
@@ -114,12 +134,12 @@ class DailyTransactionList extends StatelessWidget {
             /*─ 거래 카드 ─*/
             ...list.map((tx) {
               final isIncome = tx.type == 'income';
-              final cat      = catBox.get(tx.categoryId);
+              final cat = catBox.get(tx.categoryId);
 
               final iconColor = isIncome
                   ? theme.colorScheme.primary
                   : Color(cat?.colorValue ?? 0xFFCCCCCC);
-              final iconData = iconMap[cat?.iconKey] ?? Icons.help_outline;
+              final iconData = isIncome ?  Icons.add_rounded : iconMap[cat?.iconKey] ?? Icons.help_outline_outlined;
 
               return ListTile(
                 leading: CircleAvatar(
@@ -128,7 +148,11 @@ class DailyTransactionList extends StatelessWidget {
                 ),
                 title: Text(tx.memo,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: isIncome ? null : Text(cat?.name ?? '—'),
+                subtitle: isIncome
+                    ? null
+                    : Text(
+                        '${cat?.name ?? '—'}${tx.path != '모름' ? ' | ${tx.path}' : ''}',
+                      ),
                 trailing: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.center,

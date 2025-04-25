@@ -10,6 +10,7 @@ import '../../models/budget_category.dart';
 import '../../models/transaction.dart';
 import '../main/budget_item_list_page.dart';
 import 'budget_add_page.dart';
+import 'budget_edit_page.dart';
 
 /*──────────────────────────────────────── BudgetPage ───────────────────────────────*/
 class BudgetPage extends StatelessWidget {
@@ -29,11 +30,8 @@ class BudgetPage extends StatelessWidget {
             icon: const Icon(Icons.add_rounded),
             color: colors.onSurface,
             tooltip: '예산 편성',
-            onPressed: () =>
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BudgeAddPage())
-                ),
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const BudgeAddPage())),
           ),
         ],
       ),
@@ -74,9 +72,7 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme
-        .of(context)
-        .colorScheme;
+    final colors = Theme.of(context).colorScheme;
     final catBox = Hive.box<BudgetCategory>('categories');
     final df = DateFormat('yyyy.MM.dd');
     final amtFmt = NumberFormat('#,##0', 'ko');
@@ -90,14 +86,15 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
       ..sort((a, b) => b.spentAmount.compareTo(a.spentAmount));
 
     final sections = <PieChartSectionData>[];
-    for (final it in sortedItems) {            // ⬅ 파이차트도 같은 순서 사용
+    for (final it in sortedItems) {
+      // ⬅ 파이차트도 같은 순서 사용
       limit += it.limitAmount;
       spent += it.spentAmount;
       if (it.spentAmount > 0) {
         final cat = catBox.get(it.categoryId);
         sections.add(PieChartSectionData(
-          value : it.spentAmount.toDouble(),
-          color : Color(cat?.colorValue ?? 0xFFCCCCCC),
+          value: it.spentAmount.toDouble(),
+          color: Color(cat?.colorValue ?? 0xFFCCCCCC),
           radius: 15,
           showTitle: false,
         ));
@@ -121,12 +118,11 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
                 Expanded(
                   child: Text(
                     '${df.format(widget.period.startDate)} ~ '
-                        '${df.format(widget.period.endDate)}',
+                    '${df.format(widget.period.endDate)}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 22),
                   ),
                 ),
-
                 Icon(_open
                     ? Icons.expand_less_rounded
                     : Icons.expand_more_rounded),
@@ -134,35 +130,31 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
             ),
             const SizedBox(height: 15),
             /* 날짜 & 숫자 블록 */
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _kv('한도', amtFmt.format(limit)),
-                      _kv('사용', amtFmt.format(spent)),
-                      _kv('잔액', amtFmt.format(remain.abs()),
-                          valueColor: remain < 0 ? Colors.redAccent : null),
-                    ],
-                  ),
-                  SizedBox(
-                    width: 64,
-                    height: 64,
-                    child: sections.isEmpty
-                        ? const SizedBox()
-                        : PieChart(
-                      PieChartData(
-                        sections: sections,
-                        centerSpaceRadius: 22,
-                        sectionsSpace: 1.5,
+                  _kv('한도', amtFmt.format(limit)),
+                  _kv('사용', amtFmt.format(spent)),
+                  _kv('잔액', amtFmt.format(remain),
+                      valueColor: remain < 0 ? Colors.redAccent : null),
+                ],
+              ),
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: sections.isEmpty
+                    ? const SizedBox()
+                    : PieChart(
+                        PieChartData(
+                          sections: sections,
+                          centerSpaceRadius: 22,
+                          sectionsSpace: 1.5,
+                        ),
                       ),
-                    ),
-                  ),
-                ]
-            ),
+              ),
+            ]),
             /* 미니 파이차트 */
-
           ],
         ),
       ),
@@ -183,36 +175,29 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
             backgroundColor: Color(cat?.colorValue ?? 0xFFCCCCCC),
           ),
           title: Text(cat?.name ?? '—',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 17
-
-              )
-          ),
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
           trailing: Text(
             '${amtFmt.format(spentI)} / ${amtFmt.format(it.limitAmount)}',
             style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
             ),
           ),
           subtitle: Text(
             '잔액 ${amtFmt.format(remainI)}원',
             style: TextStyle(
-              fontSize: 14,
+                fontSize: 14,
                 color: remainI < 0
                     ? Colors.redAccent
-                    : Theme
-                    .of(context)
-                    .colorScheme
-                    .outline),
+                    : Theme.of(context).colorScheme.outline),
           ),
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => BudgetItemDetailPage(
                 period: widget.period,
-                item  : it,
+                item: it,
               ),
             ),
           ),
@@ -230,7 +215,7 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
             firstChild: const SizedBox.shrink(),
             secondChild: items,
             crossFadeState:
-            _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 250),
           ),
         ],
@@ -248,34 +233,39 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title : const Text('예산 수정하기'),
-              onTap : () {
+              title: const Text('예산 수정하기'),
+              onTap: () {
                 Navigator.pop(ctx);
-                // TODO: 기간 편집 화면으로 이동
+                Navigator.push(
+                  ctx,
+                  MaterialPageRoute(
+                    builder: (_) => BudgetEditPage(period: widget.period),
+                  ),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.redAccent),
-              title : const Text('예산 삭제하기',
+              title: const Text('예산 삭제하기',
                   style: TextStyle(color: Colors.redAccent)),
-              onTap : () async {
-                final boxP   = Hive.box<BudgetPeriod>('budgetPeriods');
-                final boxI   = Hive.box<BudgetItem>('budgetItems');
-                final boxTx  = Hive.box<Transaction>('transactions');
+              onTap: () async {
+                final boxP = Hive.box<BudgetPeriod>('budgetPeriods');
+                final boxI = Hive.box<BudgetItem>('budgetItems');
+                final boxTx = Hive.box<Transaction>('transactions');
 
                 /* 1) 연결된 BudgetItem · Transaction 정리 */
                 for (final it in widget.period.items) {
                   // 해당 아이템에 달린 거래 모두 삭제
-                  for (final tx in it.expenseTxs)      {
+                  for (final tx in it.expenseTxs) {
                     await boxTx.delete(tx.key);
                   }
-                  await boxI.delete(it.key);            // 아이템 삭제
+                  await boxI.delete(it.key); // 아이템 삭제
                 }
 
                 /* 2) BudgetPeriod 삭제 */
                 await boxP.delete(widget.period.key);
 
-                if (mounted) Navigator.pop(ctx);        // BottomSheet 닫기
+                if (mounted) Navigator.pop(ctx); // BottomSheet 닫기
                 // 부모 ListView 는 ValueListenableBuilder 로 자동 새로고침
               },
             ),
@@ -286,19 +276,18 @@ class _BudgetPeriodCardState extends State<_BudgetPeriodCard>
   }
 
   /* key-value 한 줄 */
-  Widget _kv(String k, String v, {Color? valueColor}) =>
-      Padding(
+  Widget _kv(String k, String v, {Color? valueColor}) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(k, style: TextStyle(fontSize: 17)),
-            SizedBox(width: 15,),
+            SizedBox(
+              width: 15,
+            ),
             Text(
               v,
-              style: TextStyle(
-                fontSize: 17,
-                color: valueColor),
+              style: TextStyle(fontSize: 17, color: valueColor),
             ),
           ],
         ),

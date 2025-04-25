@@ -6,9 +6,12 @@ import 'package:money_plan/pages/main/top_tabs/main_budget_page.dart';
 
 // 컴포넌트
 import '../../componenets/bottom_sheet/bottom_sheet_pick_budget_period.dart';
+import '../budget/budget_edit_page.dart';
 import 'top_tabs/main_day_page.dart';
+
 // 페이지
 import './transaction_add_page.dart';
+
 // 모델
 import '../../models/budget_period.dart';
 import '../../models/budget_item.dart';
@@ -23,16 +26,13 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage>
     with SingleTickerProviderStateMixin {
-
-
   static BudgetPeriod? _cachedPeriod;
-  static BudgetItem?   _cachedItem;
+  static BudgetItem? _cachedItem;
 
   late TabController _tabController;
 
   BudgetPeriod? _currentPeriod;
-  BudgetItem?   _currentItem;
-
+  BudgetItem? _currentItem;
 
   final _periodBox = Hive.box<BudgetPeriod>('budgetPeriods');
 
@@ -43,7 +43,7 @@ class _MainPageState extends State<MainPage>
 
     // 1) 캐시가 있으면 그대로 사용
     _currentPeriod = _cachedPeriod;
-    _currentItem   = _cachedItem;
+    _currentItem = _cachedItem;
 
     // 2) 앱 최초 진입일 때만 오늘 날짜로 탐색
     if (_currentPeriod == null) {
@@ -51,13 +51,13 @@ class _MainPageState extends State<MainPage>
       for (final p in _periodBox.values) {
         if (p.contains(today)) {
           _currentPeriod = p;
-          _currentItem   = p.items.isNotEmpty ? p.items.first : null;
+          _currentItem = p.items.isNotEmpty ? p.items.first : null;
           break;
         }
       }
       // 3) 결과를 캐시
       _cachedPeriod = _currentPeriod;
-      _cachedItem   = _currentItem;
+      _cachedItem = _currentItem;
     }
   }
 
@@ -77,12 +77,12 @@ class _MainPageState extends State<MainPage>
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final themes  = Theme.of(context);
+    final themes = Theme.of(context);
 
     final df = DateFormat('MM.dd');
     final headerText = (_currentPeriod != null)
         ? '${df.format(_currentPeriod!.startDate)}'
-        ' ~ ${df.format(_currentPeriod!.endDate)}'
+            ' ~ ${df.format(_currentPeriod!.endDate)}'
         : '예산 선택';
 
     return Scaffold(
@@ -103,16 +103,38 @@ class _MainPageState extends State<MainPage>
           ),
         ),
         actions: [
-          IconButton(                          // ←  글 작성 아이콘
-            icon: const Icon(Icons.create_rounded),
-            color: colors.onSurface,
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
             tooltip: '예산 편집',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TransactionAddPage()),
-            ),
+            color: _currentPeriod == null
+                ? Theme.of(context).disabledColor
+                : Theme.of(context).iconTheme.color,
+            onPressed: _currentPeriod == null
+                ? null
+                : () async {
+                    // 1) 편집 페이지로 이동 (await 로 돌아올 때까지 대기)
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BudgetEditPage(period: _currentPeriod!),
+                      ),
+                    );
+                    // 2) 돌아왔을 때 Hive에서 같은 id의 객체를 다시 조회
+                    final reloaded = _periodBox.get(_currentPeriod!.id);
+                    setState(() {
+                      _currentPeriod = reloaded;
+                      // _currentPeriod.items 가 바뀌었을 수 있으니 첫 번째 아이템도 업데이트
+                      _currentItem =
+                          (reloaded != null && reloaded.items.isNotEmpty)
+                              ? reloaded.items.first
+                              : null;
+                      // 캐시도 덮어쓰기
+                      _cachedPeriod = _currentPeriod;
+                      _cachedItem = _currentItem;
+                    });
+                  },
           ),
-          IconButton(                          // ←  글 작성 아이콘
+          IconButton(
             icon: const Icon(Icons.add_rounded),
             color: colors.onSurface,
             tooltip: '새 지출/수입 추가',
@@ -141,12 +163,13 @@ class _MainPageState extends State<MainPage>
       body: (_currentPeriod == null)
           ? const Center(child: Text('예산을 먼저 선택하세요'))
           : TabBarView(
-        controller: _tabController,
-        children: [
-          MainDayPage(period: _currentPeriod, key: ValueKey(_currentPeriod?.id)),
-          MainBudgetPage(period: _currentPeriod!),
-        ],
-      ),
+              controller: _tabController,
+              children: [
+                MainDayPage(
+                    period: _currentPeriod, key: ValueKey(_currentPeriod?.id)),
+                MainBudgetPage(period: _currentPeriod!),
+              ],
+            ),
     );
   }
 }

@@ -9,8 +9,7 @@ import '../../models/budget_item.dart';
 import '../../models/budget_category.dart';
 import '../../models/transaction.dart';
 
-import 'categort_edit_page.dart';            // 카테고리 편집 페이지
-import 'package:money_plan/componenets/bottom_sheet/bottom_sheet_category_add.dart';
+import 'category_edit_page.dart';
 import '../../componenets/icon_map.dart';
 
 class BudgeAddPage extends StatefulWidget {
@@ -309,10 +308,9 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
                 /* ─ 저장 버튼 ─ */
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: _save,
-                    icon : const Icon(Icons.save),
-                    label: const Text('저장'),
+                    child: Text('저장하기', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),),
                   ),
                 ),
               ],

@@ -12,7 +12,7 @@ import '../../models/budget_period.dart';
 import '../../models/budget_item.dart';
 import '../../models/budget_category.dart';
 import '../../models/transaction.dart';
-import '../budget/categort_edit_page.dart';
+import '../budget/category_edit_page.dart';
 
 class TransactionAddPage extends StatefulWidget {
   const TransactionAddPage({super.key});
@@ -36,6 +36,10 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
   final _amtCtrl = TextEditingController();
   final _memoCtrl = TextEditingController();
 
+  bool _memoInvalid = false;
+  bool _amtInvalid = false;
+  bool _itemInvalid = false;
+
   /*──────── 날짜 → 기간 매핑 ────────*/
   void _resolvePeriodByDate() {
     final found = _periodBox.values.firstWhereOrNull((p) => p.contains(_date));
@@ -49,14 +53,19 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
 
   /*──────── 저장 ────────*/
   Future<void> _save() async {
+    final memo = _memoCtrl.text.trim();
     final amt = int.tryParse(_amtCtrl.text.replaceAll(',', '')) ?? 0;
-    if (amt <= 0) return;
-
-    _resolvePeriodByDate();
-    if (_bank == null) {
-      _showErr('은행을 선택하세요');
+    // — 검증 로직 시작 —
+    setState(() {
+      _memoInvalid = memo.isEmpty;
+      _amtInvalid = amt <= 0;
+      _itemInvalid = _type == 'expense' && _item == null;
+    });
+    if (_memoInvalid || _amtInvalid || _itemInvalid) {
+      // 하나라도 에러면 저장 중단
       return;
     }
+    _resolvePeriodByDate();
 
     if (_period == null) {
       _showErr('선택한 날짜에 편성된 예산이 없습니다');
@@ -74,7 +83,7 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
       amount: amt,
       categoryId: _type == 'expense' ? _item!.categoryId : 0,
       memo: _memoCtrl.text.trim(),
-      path: _bank!.name,
+      path: _bank?.name ?? '모름',
       periodId: _period!.id,
       budgetItemId: _type == 'expense' ? _item!.id : 0,
     );
@@ -107,7 +116,7 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
       initialIndex: _type == 'expense' ? 0 : 1,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('소비/수익 추가'),
+          title: const Text('지출/수입 추가'),
           bottom: TabBar(
             dividerColor: themes.dividerColor,
             indicatorSize: TabBarIndicatorSize.tab,
@@ -150,6 +159,7 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     /* 날짜 선택 */
                     DecoratedBox(
@@ -176,13 +186,38 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
                         onTap: _pickSingleDate,
                       ),
                     ),
-                    const SizedBox(height: 12),
-
+                    const SizedBox(height: 24),
+                    Text(
+                      _type == 'expense' ? '지출명' : '수입명',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                    ),
                     /* 메모 입력 */
                     TextField(
                       controller: _memoCtrl,
                       decoration: InputDecoration(
-                        hintText: _type == 'expense' ? '지출명' : '수입명',
+                        hintText: _type == 'expense'
+                            ? (_memoInvalid ? '필수항목입니다' : '지출명을 입력해주세요')
+                            : (_memoInvalid ? '필수항목입니다' : '수입명을 입력해주세요'),
+                        errorText: _memoInvalid ? '지출/수입명을 입력하세요' : null,
+                        isDense: true,
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      '금액',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                    ),
+                    /* 금액 입력 */
+                    TextField(
+                      controller: _amtCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        hintText: _amtInvalid ? '양수를 입력해주세요' : '금액을 입력해주세요',
+                        errorText: _amtInvalid ? '금액을 올바르게 입력하세요' : null,
                         isDense: true,
                         contentPadding:
                             const EdgeInsets.symmetric(vertical: 12),
@@ -190,20 +225,13 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    /* 금액 입력 */
-                    TextField(
-                      controller: _amtCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        hintText: '금액 (원)',
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
                     /* 예산 항목 선택 */
                     if (_type == 'expense') ...[
+                      Text(
+                        '예산 항목',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w500),
+                      ),
                       GestureDetector(
                         onTap: () async {
                           if (_period == null) return;
@@ -214,10 +242,19 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
                         },
                         child: InputDecorator(
                           isEmpty: _item == null,
-                          decoration: const InputDecoration(
-                            hintText: '예산 항목 선택',
+                          decoration: InputDecoration(
+                            hintText: _itemInvalid ? '선택이 필요합니다' : '예산 항목 선택',
+                            errorText: _itemInvalid ? '예산 항목을 선택하세요' : null,
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 12),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 12),
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(
+                                color: _itemInvalid
+                                    ? Colors.red
+                                    : Theme.of(context).colorScheme.outline,
+                              ),
+                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -235,10 +272,12 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                    ],
-
-                    /* 은행 선택 */
-                    if (_type == 'expense') ...[
+                      Text(
+                        '지출 경로',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w500),
+                      ),
+                      /* 은행 선택 */
                       GestureDetector(
                         onTap: () async {
                           final selected = await _showBankPicker();
@@ -275,10 +314,12 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
             // 🔹 아래 고정된 저장 버튼
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.save),
-                label: const Text('저장'),
+              child: ElevatedButton(
                 onPressed: _save,
+                child: Text(
+                  '저장하기',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
             ),
           ],
@@ -420,12 +461,15 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const Spacer(),
                   TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BankEditPage(),
-                      ),
-                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BankEditPage(),
+                        ),
+                      );
+                    },
                     child: const Text('편집'),
                   ),
                 ],
