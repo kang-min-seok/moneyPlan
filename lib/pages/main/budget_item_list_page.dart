@@ -17,25 +17,30 @@ class BudgetItemDetailPage extends StatelessWidget {
   });
 
   final BudgetPeriod period;
-  final BudgetItem   item;
+  final BudgetItem item;
 
   @override
   Widget build(BuildContext context) {
     final txBox = Hive.box<Transaction>('transactions');
-    final catBox = Hive.box<BudgetCategory>('categories');   // ← 추가
-    final cat    = catBox.get(item.categoryId);
+    final catBox = Hive.box<BudgetCategory>('categories'); // ← 추가
+    final cat = catBox.get(item.categoryId);
 
-    /*─ 거래 필터 : 선택 기간 & 선택 항목 ─*/
+    /*─ 거래 필터 : 선택 기간(날짜) & 선택 항목(지출) ─*/
     final ascending = txBox.values
-        .where((t) =>
-    t.periodId == period.id &&
-        t.budgetItemId == item.id &&
-        t.type == 'expense')                       // 소비만
+        .where(
+          (t) =>
+              // 1) 지출만
+              t.type == 'expense' &&
+              // 2) 이 BudgetItem의 id와 일치
+              t.budgetItemId == item.id &&
+              // 3) 날짜가 현재 period 범위에 속하는지
+              period.contains(t.date),
+        )
         .sortedBy<num>((t) => t.date.millisecondsSinceEpoch);
 
     /*─ 잔액(남은 예산) 계산 ─*/
     final remainByTx = <int, int>{};
-    int acc = 0;                       // 누적 지출
+    int acc = 0; // 누적 지출
     for (final tx in ascending) {
       acc += tx.amount;
       remainByTx[tx.id] = item.limitAmount - acc;
@@ -43,16 +48,14 @@ class BudgetItemDetailPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text( cat?.name ?? '소비 내역',
+        title: Text(cat?.name ?? '소비 내역',
             style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Column(
         children: [
           /* 상단 한눈 요약 */
           _budgetProgress(context),
-          Divider(
-              color: Theme.of(context).dividerColor,
-              height: 1),
+          Divider(color: Theme.of(context).dividerColor, height: 1),
 
           /* 일별 리스트 */
           Expanded(
@@ -66,21 +69,19 @@ class BudgetItemDetailPage extends StatelessWidget {
     );
   }
 
-
   Widget _budgetProgress(BuildContext context) {
-    final limit  = item.limitAmount.toDouble();
-    final spent  = item.spentAmount.toDouble();
-    final theme  = Theme.of(context);
+    final limit = item.limitAmount.toDouble();
+    final spent = item.spentAmount.toDouble();
+    final theme = Theme.of(context);
     final amtFmt = NumberFormat('#,##0', 'ko');
 
     final isOver = spent > limit;
-    final usedRatio = limit == 0
-        ? 1.0
-        : ((spent / limit).clamp(0.0, 1.0) as num).toDouble();
+    final usedRatio =
+        limit == 0 ? 1.0 : ((spent / limit).clamp(0.0, 1.0) as num).toDouble();
 
     final overRatio = isOver
         ? (((spent - limit) / limit).clamp(0.0, 1.0) as num).toDouble()
-        : 0.0;                              // 0 ~ 1 (초과분)
+        : 0.0; // 0 ~ 1 (초과분)
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -95,7 +96,9 @@ class BudgetItemDetailPage extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.bold)),
               Text('사용  ${amtFmt.format(spent)}원',
                   style: TextStyle(
-                      color: isOver ? Colors.redAccent : theme.colorScheme.primary)),
+                      color: isOver
+                          ? Colors.redAccent
+                          : theme.colorScheme.primary)),
             ],
           ),
           const SizedBox(height: 10),

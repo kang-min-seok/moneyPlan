@@ -21,11 +21,11 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       date: fields[1] as DateTime,
       type: fields[2] as String,
       amount: fields[3] as int,
-      categoryId: fields[4] as int,
+      categoryId: fields[4] as int?,
       memo: fields[5] as String,
       path: fields[6] as String,
       periodId: fields[7] as int?,
-      budgetItemId: fields[8] as int,
+      budgetItemId: fields[8] as int?,
     );
   }
 

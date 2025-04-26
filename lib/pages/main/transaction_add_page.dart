@@ -81,11 +81,11 @@ class _TransactionAddPageState extends State<TransactionAddPage> {
       date: _date,
       type: _type,
       amount: amt,
-      categoryId: _type == 'expense' ? _item!.categoryId : 0,
+      categoryId: _type == 'expense' ? _item!.categoryId : null,
       memo: _memoCtrl.text.trim(),
       path: _bank?.name ?? '모름',
       periodId: _period!.id,
-      budgetItemId: _type == 'expense' ? _item!.id : 0,
+      budgetItemId: _type == 'expense' ? _item!.id : null,
     );
     final key = await _txBox.add(tx);
     tx.id = key;

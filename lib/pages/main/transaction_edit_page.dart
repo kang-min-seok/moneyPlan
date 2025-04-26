@@ -100,8 +100,8 @@ class _TransactionEditPageState extends State<TransactionEditPage> {
       ..memo        = _memoCtrl.text.trim()
       ..path        = _bank?.name ?? '모름'
       ..periodId    = _period!.id
-      ..categoryId  = _type == 'expense' ? _item!.categoryId : 0
-      ..budgetItemId= _type == 'expense' ? _item!.id : 0;
+      ..categoryId  = _type == 'expense' ? _item!.categoryId : null
+      ..budgetItemId= _type == 'expense' ? _item!.id : null;
     await tx.save();
 
     // 3) 새 지출분 반영

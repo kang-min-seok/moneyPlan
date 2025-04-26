@@ -19,7 +19,7 @@ class Transaction extends HiveObject {
   int amount; // 음수 금액은 사용하지 않고 type 으로만 구분
 
   @HiveField(4)
-  int categoryId;   // 수익일 때는 아무 값이나 가능
+  int? categoryId;   // 수익일 때는 아무 값이나 가능
 
   @HiveField(5)
   String memo;
@@ -32,17 +32,17 @@ class Transaction extends HiveObject {
   int? periodId;
 
   @HiveField(8)
-  int budgetItemId;
+  int? budgetItemId;
 
   Transaction({
     required this.id,
     required this.date,
     required this.type,
     required this.amount,
-    required this.categoryId,
+    this.categoryId,
     required this.memo,
     required this.path,
     this.periodId,
-    required this.budgetItemId,
+    this.budgetItemId,
   });
 }

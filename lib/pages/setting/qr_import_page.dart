@@ -87,11 +87,11 @@ class _QrImportPageState extends State<QrImportPage> {
   }
 
   Future<void> _importData(Map<String, dynamic> map) async {
-    final catBox    = Hive.box<BudgetCategory>('categories');
-    final itemBox   = Hive.box<BudgetItem>('budgetItems');
+    final catBox = Hive.box<BudgetCategory>('categories');
+    final itemBox = Hive.box<BudgetItem>('budgetItems');
     final periodBox = Hive.box<BudgetPeriod>('budgetPeriods');
-    final txBox     = Hive.box<Transaction>('transactions');
-    final bankBox   = Hive.box<Bank>('banks');
+    final txBox = Hive.box<Transaction>('transactions');
+    final bankBox = Hive.box<Bank>('banks');
 
     // 0) 전부 비우기
     await catBox.clear();
@@ -101,7 +101,7 @@ class _QrImportPageState extends State<QrImportPage> {
     await bankBox.clear();
 
     // 1) 카테고리 복원 & 매핑
-    final Map<int,int> catMap = {};
+    final Map<int, int> catMap = {};
     for (final c in map['categories']) {
       final cat = BudgetCategory(
         id: 0,
@@ -110,12 +110,13 @@ class _QrImportPageState extends State<QrImportPage> {
         colorValue: c['colorValue'],
       );
       final newKey = await catBox.add(cat);
-      cat.id = newKey; await cat.save();
+      cat.id = newKey;
+      await cat.save();
       catMap[c['id']] = newKey;
     }
 
     // 2) 예산 아이템 복원 & 매핑
-    final Map<int,int> itemMap = {};
+    final Map<int, int> itemMap = {};
     for (final i in map['items']) {
       final item = BudgetItem(
         id: 0,
@@ -125,28 +126,29 @@ class _QrImportPageState extends State<QrImportPage> {
         spentAmount: i['spentAmount'],
       );
       final newKey = await itemBox.add(item);
-      item.id = newKey; await item.save();
+      item.id = newKey;
+      await item.save();
       itemMap[i['id']] = newKey;
     }
     final allItems = itemBox.values.toList();
 
     // 3) 기간 복원 & 매핑
-    final Map<int,int> periodMap = {};
+    final Map<int, int> periodMap = {};
     for (final p in map['periods']) {
       // 옛날 ID → 새 키로 변환
-      final newItemKeys = (p['items'] as List)
-          .map((oldId) => itemMap[oldId]!)
-          .toList();
+      final newItemKeys =
+          (p['items'] as List).map((oldId) => itemMap[oldId]!).toList();
       final objs = allItems.where((it) => newItemKeys.contains(it.id)).toList();
 
       final period = BudgetPeriod(
         id: 0,
         startDate: DateTime.parse(p['startDate']),
-        endDate  : DateTime.parse(p['endDate']),
-        items    : HiveList(itemBox, objects: objs),
+        endDate: DateTime.parse(p['endDate']),
+        items: HiveList(itemBox, objects: objs),
       );
       final newKey = await periodBox.add(period);
-      period.id = newKey; await period.save();
+      period.id = newKey;
+      await period.save();
       periodMap[p['id']] = newKey;
     }
 
@@ -158,35 +160,39 @@ class _QrImportPageState extends State<QrImportPage> {
         imagePath: b['imagePath'],
       );
       final newKey = await bankBox.add(bank);
-      bank.id = newKey; await bank.save();
+      bank.id = newKey;
+      await bank.save();
     }
 
     // 5) 거래 내역 복원 (카테고리·기간·아이템 ID 매핑)
     for (final t in map['transactions']) {
-      final oldCatId  = t['categoryId'] as int;
-      final oldPerId  = t['periodId']   as int?;
-      final oldItemId = t['budgetItemId'] as int?;
-
-      final newCatId = catMap[oldCatId] ?? 0;
-      final newPerId = (oldPerId != null && periodMap.containsKey(oldPerId))
-          ? periodMap[oldPerId]
+      // null 가능하게 int? 로 받기
+      final int? oldCatId =
+          (t['categoryId'] as Object?) is int ? t['categoryId'] as int : null;
+      final int? oldPerId =
+          (t['periodId'] as Object?) is int ? t['periodId'] as int : null;
+      final int? oldItemId = (t['budgetItemId'] as Object?) is int
+          ? t['budgetItemId'] as int
           : null;
-      final newItemId = (oldItemId != null && itemMap.containsKey(oldItemId))
-          ? itemMap[oldItemId]!
-          : 0;
+
+      // 매핑 테이블에서 새 키를 찾되, 없으면 null
+      final int? newCatId = oldCatId != null ? catMap[oldCatId] : null;
+      final int? newPerId = oldPerId != null ? periodMap[oldPerId] : null;
+      final int? newItemId = oldItemId != null ? itemMap[oldItemId] : null;
 
       final tx = Transaction(
-        id:          0,
-        date:        DateTime.parse(t['date']),
-        type:        t['type'],
-        amount:      t['amount'],
-        categoryId:  newCatId,
-        memo:        t['memo'],
-        path:        t['path'],
-        periodId:    newPerId,
-        budgetItemId:newItemId,
+        id: 0,
+        date: DateTime.parse(t['date']),
+        type: t['type'],
+        amount: t['amount'],
+        categoryId: newCatId,
+        // int? field
+        memo: t['memo'],
+        path: t['path'],
+        periodId: newPerId,
+        // int? field
+        budgetItemId: newItemId, // int? field
       );
-
       final newKey = await txBox.add(tx);
       tx.id = newKey;
       await tx.save();
@@ -194,14 +200,14 @@ class _QrImportPageState extends State<QrImportPage> {
 
     // 6) 지출합계·리스트 갱신
     for (final it in allItems) {
-      final related = txBox.values.where((tx) => tx.budgetItemId == it.id).toList();
+      final related =
+          txBox.values.where((tx) => tx.budgetItemId == it.id).toList();
       it
         ..expenseTxs = HiveList(txBox, objects: related)
         ..spentAmount = related.fold(0, (sum, tx) => sum + tx.amount);
       await it.save();
     }
   }
-
 
   @override
   void dispose() {

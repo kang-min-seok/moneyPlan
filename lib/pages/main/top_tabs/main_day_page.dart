@@ -10,7 +10,7 @@ import '../../../models/transaction.dart';
 import '../../../models/budget_category.dart';
 
 class MainDayPage extends StatelessWidget {
-  final BudgetPeriod? period;            // 선택한 예산 기간
+  final BudgetPeriod? period; // 선택한 예산 기간
 
   const MainDayPage({super.key, required this.period});
 
@@ -20,16 +20,16 @@ class MainDayPage extends StatelessWidget {
       return const Center(child: Text('선택된 예산 기간이 없습니다'));
     }
 
-    final txBox   = Hive.box<Transaction>('transactions');
-    final amtFmt  = NumberFormat('#,##0', 'ko');
-    final theme   = Theme.of(context);
+    final txBox = Hive.box<Transaction>('transactions');
+    final amtFmt = NumberFormat('#,##0', 'ko');
+    final theme = Theme.of(context);
 
     return ValueListenableBuilder(
       valueListenable: txBox.listenable(),
       builder: (_, Box<Transaction> box, __) {
         /*─ ① 기간 필터 / 오름차순 ─*/
         final ascending = box.values
-            .where((t) => t.periodId == period!.id)
+            .where((t) => period!.contains(t.date))
             .sortedBy<num>((t) => t.date.millisecondsSinceEpoch);
 
         if (ascending.isEmpty) {
@@ -38,17 +38,18 @@ class MainDayPage extends StatelessWidget {
 
         /*─ ② 잔액 계산 (지출 전용) ─*/
         final remain = <int, int>{};
-        final spent  = <int, int>{};
+        final spent = <int, int>{};
         for (final tx in ascending) {
-          if (tx.type == 'expense') {
-            spent.update(tx.budgetItemId, (v) => v + tx.amount,
-                ifAbsent: () => tx.amount);
+          if (tx.type == 'expense' && tx.budgetItemId != null) {
+            final bid = tx.budgetItemId!;
+            spent.update(bid, (v) => v + tx.amount, ifAbsent: () => tx.amount);
             final limit = period!.items
-                .firstWhereOrNull((it) => it.id == tx.budgetItemId)
-                ?.limitAmount ??
+                    .firstWhereOrNull((it) => it.id == bid)
+                    ?.limitAmount ??
                 0;
-            remain[tx.id] = limit - (spent[tx.budgetItemId] ?? 0);
+            remain[tx.id] = limit - (spent[bid] ?? 0);
           } else {
+            // 수입이거나 budgetItemId 가 없으면 잔액 계산 안 함
             remain[tx.id] = 0;
           }
         }
@@ -68,7 +69,8 @@ class MainDayPage extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _cell('수입',  amtFmt.format(totalInc), theme.colorScheme.primary),
+                  _cell(
+                      '수입', amtFmt.format(totalInc), theme.colorScheme.primary),
                   _cell('지출', amtFmt.format(totalExp), Colors.redAccent),
                   _cell('합계', amtFmt.format(totalInc - totalExp),
                       theme.colorScheme.onBackground),
@@ -90,17 +92,14 @@ class MainDayPage extends StatelessWidget {
     );
   }
 
-
   /*──── 작은 헬퍼 ────*/
   Widget _cell(String label, String value, Color color) => Column(
-    children: [
-      Text(label,
-          style:
-          const TextStyle( fontWeight: FontWeight.bold)),
-      const SizedBox(height: 4),
-      Text(value,
-          style: TextStyle(
-              color: color, fontWeight: FontWeight.bold, fontSize: 16)),
-    ],
-  );
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(value,
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+        ],
+      );
 }
