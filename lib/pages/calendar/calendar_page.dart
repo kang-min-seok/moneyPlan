@@ -375,7 +375,7 @@ class CalendarPageState extends State<CalendarPage> {
                         : Color(
                             cat?.colorValue ?? 0xFF888888); // 지출 카테고리 색상 또는 기본값
                     final iconData = isIncome
-                        ? Icons.add_circle // 수입 아이콘
+                        ? Icons.add_rounded // 수입 아이콘
                         : iconMap[cat?.iconKey] ??
                             Icons.help_outline; // 지출 카테고리 아이콘 또는 기본 아이콘
 

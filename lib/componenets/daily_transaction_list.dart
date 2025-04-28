@@ -142,6 +142,9 @@ class DailyTransactionList extends StatelessWidget {
               final iconData = isIncome ?  Icons.add_rounded : iconMap[cat?.iconKey] ?? Icons.help_outline_outlined;
 
               return ListTile(
+                contentPadding: isIncome ?
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 6,) :
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 0,),
                 leading: CircleAvatar(
                   backgroundColor: iconColor,
                   child: Icon(iconData, color: Colors.white),
