@@ -103,37 +103,37 @@ class _MainPageState extends State<MainPage>
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded),
-            tooltip: '예산 편집',
-            color: _currentPeriod == null
-                ? Theme.of(context).disabledColor
-                : Theme.of(context).iconTheme.color,
-            onPressed: _currentPeriod == null
-                ? null
-                : () async {
-                    // 1) 편집 페이지로 이동 (await 로 돌아올 때까지 대기)
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BudgetEditPage(period: _currentPeriod!),
-                      ),
-                    );
-                    // 2) 돌아왔을 때 Hive에서 같은 id의 객체를 다시 조회
-                    final reloaded = _periodBox.get(_currentPeriod!.id);
-                    setState(() {
-                      _currentPeriod = reloaded;
-                      // _currentPeriod.items 가 바뀌었을 수 있으니 첫 번째 아이템도 업데이트
-                      _currentItem =
-                          (reloaded != null && reloaded.items.isNotEmpty)
-                              ? reloaded.items.first
-                              : null;
-                      // 캐시도 덮어쓰기
-                      _cachedPeriod = _currentPeriod;
-                      _cachedItem = _currentItem;
-                    });
-                  },
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.edit_rounded),
+          //   tooltip: '예산 편집',
+          //   color: _currentPeriod == null
+          //       ? Theme.of(context).disabledColor
+          //       : Theme.of(context).iconTheme.color,
+          //   onPressed: _currentPeriod == null
+          //       ? null
+          //       : () async {
+          //           // 1) 편집 페이지로 이동 (await 로 돌아올 때까지 대기)
+          //           await Navigator.push(
+          //             context,
+          //             MaterialPageRoute(
+          //               builder: (_) => BudgetEditPage(period: _currentPeriod!),
+          //             ),
+          //           );
+          //           // 2) 돌아왔을 때 Hive에서 같은 id의 객체를 다시 조회
+          //           final reloaded = _periodBox.get(_currentPeriod!.id);
+          //           setState(() {
+          //             _currentPeriod = reloaded;
+          //             // _currentPeriod.items 가 바뀌었을 수 있으니 첫 번째 아이템도 업데이트
+          //             _currentItem =
+          //                 (reloaded != null && reloaded.items.isNotEmpty)
+          //                     ? reloaded.items.first
+          //                     : null;
+          //             // 캐시도 덮어쓰기
+          //             _cachedPeriod = _currentPeriod;
+          //             _cachedItem = _currentItem;
+          //           });
+          //         },
+          // ),
           IconButton(
             icon: const Icon(Icons.add_rounded),
             color: colors.onSurface,

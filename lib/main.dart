@@ -7,7 +7,7 @@ import 'package:money_plan/theme/theme_provider.dart';
 import 'package:money_plan/theme/theme_custom.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
+import 'package:money_plan/componenets/default_data.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import './pages/main/main_page.dart';
@@ -55,7 +55,7 @@ void main() async {
 
   // ─── 기본 카테고리 주입 ───
   if (catBox.isEmpty) {
-    final defaults = _defaultCategories();
+    final defaults = defaultCategories();
     for (final c in defaults) {
       final key = await catBox.add(c);
       c.id = key;
@@ -65,7 +65,7 @@ void main() async {
 
   // ─── 기본 은행 목록 주입 ───
   if (bankBox.isEmpty) {
-    final defaults = _defaultBanks();
+    final defaults = defaultBanks();
     for (final b in defaults) {
       final key = await bankBox.add(b);
       b.id = key;
@@ -73,50 +73,15 @@ void main() async {
     }
   }
 
-  // ─ 처음 실행 시 기본 카테고리 주입 ─
-  if (catBox.isEmpty) {
-    final defaults = _defaultCategories();
-    // addAll → key 자동 생성, 모델 id 필드도 함께 맞춰 줌
-    for (final c in defaults) {
-      final key = await catBox.add(c);
-      c.id = key;
-      await c.save();
-    }
-  }
   await Hive.openBox<BudgetItem>('budgetItems');
   await Hive.openBox<BudgetPeriod>('budgetPeriods');
   await Hive.openBox<Transaction>('transactions');
+  await Hive.openBox<Bank>('banks');
 
   runApp(MyApp(themeMode: themeMode));
   //runApp(const MyApp());
 }
 
-List<BudgetCategory> _defaultCategories() => [
-  BudgetCategory(id: 0, name: '적금',     iconKey: 'savings',           colorValue: 0xFF00695C),
-  BudgetCategory(id: 0, name: '식비',     iconKey: 'restaurant',        colorValue: 0xFFEF6C00),
-  BudgetCategory(id: 0, name: '통신',     iconKey: 'cell_tower',        colorValue: 0xFF5C6BC0),
-  BudgetCategory(id: 0, name: '교통',     iconKey: 'directions_bus',    colorValue: 0xFF00838F),
-  BudgetCategory(id: 0, name: '생활',     iconKey: 'shopping_cart',     colorValue: 0xFF8D6E63),
-  BudgetCategory(id: 0, name: '청약',     iconKey: 'account_balance',   colorValue: 0xFF455A64),
-  BudgetCategory(id: 0, name: '경조/선물', iconKey: 'redeem',            colorValue: 0xFFAD1457),
-  BudgetCategory(id: 0, name: '비상금',   iconKey: 'emergency',         colorValue: 0xFFD84315),
-  BudgetCategory(id: 0, name: '고정',     iconKey: 'schedule',          colorValue: 0xFF6A1B9A),
-  BudgetCategory(id: 0, name: '기타',     iconKey: 'category',          colorValue: 0xFF9E9E9E),
-];
-
-List<Bank> _defaultBanks() => [
-  Bank(id: 0, name: '우리은행',   imagePath: 'assets/img/WOORI.png',),
-  Bank(id: 0, name: '국민은행',   imagePath: 'assets/img/KB.png',  ),
-  Bank(id: 0, name: '신한은행',   imagePath: 'assets/img/SINHAN.png',),
-  Bank(id: 0, name: '하나은행',   imagePath: 'assets/img/HANA.png', ),
-  Bank(id: 0, name: '케이뱅크',   imagePath: 'assets/img/KBANK.png',),
-  Bank(id: 0, name: '카카오뱅크', imagePath: 'assets/img/KAKAO.png',),
-  Bank(id: 0, name: '기업은행',   imagePath: 'assets/img/IBK.png',  ),
-  Bank(id: 0, name: '농협',       imagePath: 'assets/img/NONGHYB.png',),
-  Bank(id: 0, name: 'SC제일은행', imagePath: 'assets/img/SC.png',   ),
-  Bank(id: 0, name: '우체국',     imagePath: 'assets/img/UCHEGUK.png',),
-  Bank(id: 0, name: '현금',       imagePath: 'assets/img/cash.png',),
-];
 
 class MyApp extends StatefulWidget {
   final themeMode;

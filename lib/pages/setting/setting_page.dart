@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../componenets/default_data.dart';
+import '../../models/bank.dart';
+import '../../models/budget_category.dart';
+import '../../models/budget_item.dart';
+import '../../models/budget_period.dart';
+import '../../models/transaction.dart';
 import 'design_setting_page.dart';
 import './qr_export_page.dart';
 import './qr_import_page.dart';
@@ -43,20 +50,13 @@ class _SettingPageState extends State<SettingPage> {
     }
   }
 
-
-
-  void changeIsNotification(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isNotification', value);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        title: Text("설정",style: Theme.of(context).textTheme.displayLarge),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text("설정"),
       ),
       body: Center(
         child: Container(
@@ -86,10 +86,10 @@ class _SettingPageState extends State<SettingPage> {
               ),
 
               _SingleSection(
-                title: "데이터",
+                title: "데이터 관리",
                 children: [
                   _CustomListTile(
-                    title: "qr생성하기",
+                    title: "qr로 내보내기",
                     icon: Icons.qr_code_2_outlined,
                     onTap: (){
                       Navigator.push(
@@ -100,7 +100,7 @@ class _SettingPageState extends State<SettingPage> {
                   ),
 
                   _CustomListTile(
-                    title: "qr촬영하기",
+                    title: "qr로 가져오기",
                     icon: Icons.qr_code_scanner_rounded,
                     onTap: (){
                       Navigator.push(
@@ -109,6 +109,59 @@ class _SettingPageState extends State<SettingPage> {
                       ).then((_) {
                         getThemeText();
                       });
+                    },
+                  ),
+
+                  _CustomListTile(
+                    title: "데이터 초기화하기",
+                    icon: Icons.restore_outlined,
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("데이터 초기화"),
+                          content: const Text(
+                              "모든 데이터를 삭제하고 설치 직후 상태로 되돌립니다.\n계속하시겠습니까?"
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(_, false),
+                              child: const Text("취소"),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(_, true),
+                              child: const Text("확인"),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+
+                      // 1) 모든 Box clear
+                      await Hive.box<BudgetPeriod>('budgetPeriods').clear();
+                      await Hive.box<BudgetItem>('budgetItems').clear();
+                      await Hive.box<Transaction>('transactions').clear();
+                      // 카테고리·은행도 비우고 다시 주입
+                      final catBox  = Hive.box<BudgetCategory>('categories');
+                      final bankBox = Hive.box<Bank>('banks');
+                      await catBox.clear();
+                      await bankBox.clear();
+
+                      // 2) 기본 데이터 주입
+                      for (final c in defaultCategories()) {
+                        final key = await catBox.add(c);
+                        c.id = key;
+                        await c.save();
+                      }
+                      for (final b in defaultBanks()) {
+                        final key = await bankBox.add(b);
+                        b.id = key;
+                        await b.save();
+                      }
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("데이터가 초기화되었습니다"))
+                      );
                     },
                   ),
                 ],

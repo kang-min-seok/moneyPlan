@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
+import '../../models/bank.dart';
 import '../../models/budget_period.dart';
 import '../../models/budget_item.dart';
 import '../../models/budget_category.dart';
@@ -127,6 +128,14 @@ class _BudgeAddPageState extends State<BudgeAddPage> {
     final itemBox  = Hive.box<BudgetItem>('budgetItems');
     final periodBox= Hive.box<BudgetPeriod>('budgetPeriods');
     final txBox    = Hive.box<Transaction>('transactions');
+    final bankBox    = Hive.box<Bank>('banks');
+
+
+    debugPrint('─── bank (${bankBox.length}) ───');
+    for (var b in bankBox.values) {
+      debugPrint('[${b.id}]  ${b.name}  image:${b.imagePath}');
+    }
+
 
     debugPrint('─── BudgetCategory (${catBox.length}) ───');
     for (var c in catBox.values) {
